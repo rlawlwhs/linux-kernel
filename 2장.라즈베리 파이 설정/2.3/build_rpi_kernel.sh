@@ -2,9 +2,11 @@
 set -Eeuo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
-KERNEL_SRC="${KERNEL_SRC:-$SCRIPT_DIR/linux}"
-OUTPUT="${OUTPUT:-$SCRIPT_DIR/out}"
-BUILD_LOG="${BUILD_LOG:-$SCRIPT_DIR/rpi_build_log.txt}"
+PROJECT_ROOT="$(cd -- "$SCRIPT_DIR/../.." && pwd -P)"
+BUILD_ROOT="${BUILD_ROOT:-$PROJECT_ROOT/kernel-build}"
+KERNEL_SRC="${KERNEL_SRC:-$PROJECT_ROOT/linux-source}"
+OUTPUT="${OUTPUT:-$BUILD_ROOT/out}"
+BUILD_LOG="${BUILD_LOG:-$BUILD_ROOT/rpi_build_log.txt}"
 JOBS="${JOBS:-2}"
 ARCH=arm64
 KERNEL=kernel8
@@ -16,11 +18,19 @@ if [[ ! -f "$KERNEL_SRC/Makefile" ]]; then
 Linux kernel source was not found at:
   $KERNEL_SRC
 
-From this directory, get the Raspberry Pi 6.18 source with:
-  git clone --depth=1 --branch rpi-6.18.y https://github.com/raspberrypi/linux.git linux
+From the repository root, get the Raspberry Pi 6.18 source with:
+  git clone --depth=1 --branch rpi-6.18.y https://github.com/raspberrypi/linux.git linux-source
 EOF
     exit 1
 fi
+
+case "$KERNEL_SRC$OUTPUT" in
+    *" "*)
+        echo "Kbuild does not support spaces in the kernel source or output path." >&2
+        echo "Move them to paths without spaces or set KERNEL_SRC and OUTPUT explicitly." >&2
+        exit 1
+        ;;
+esac
 
 if ! [[ "$JOBS" =~ ^[1-9][0-9]*$ ]]; then
     echo "JOBS must be a positive integer (current value: $JOBS)" >&2
@@ -35,7 +45,7 @@ for tool in make gcc bc bison flex; do
     fi
 done
 
-mkdir -p "$OUTPUT"
+mkdir -p "$OUTPUT" "$(dirname -- "$BUILD_LOG")"
 cd "$KERNEL_SRC"
 
 echo "Source:       $KERNEL_SRC"

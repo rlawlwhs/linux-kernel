@@ -13,13 +13,15 @@ kernel.
 
 ## Prepare and build
 
-From this directory on the Pi, install the build dependencies and fetch the
-kernel source:
+From this directory on the Pi, install the build dependencies. Then fetch the
+kernel source into a path without spaces. The kernel build system does not
+support spaces in its source or output paths:
 
 ```sh
 sudo apt update
 sudo apt install build-essential bc bison flex libssl-dev
-git clone --depth=1 --branch rpi-6.18.y https://github.com/raspberrypi/linux.git linux
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+git clone --depth=1 --branch rpi-6.18.y https://github.com/raspberrypi/linux.git "$REPO_ROOT/linux-source"
 ```
 
 Then build the kernel image, modules, and device trees:
@@ -29,8 +31,9 @@ Then build the kernel image, modules, and device trees:
 ```
 
 The script uses two parallel jobs by default. Override this with `JOBS=1` or
-`JOBS=3` before the command if desired. Build output goes into `out/`; the
-script does not install or activate the kernel.
+`JOBS=3` before the command if desired. Build output goes into
+`$REPO_ROOT/kernel-build/out/`; the script does not install or activate the
+kernel.
 
 To generate a preprocessed source file, pass its kernel-tree target ending in
 `.i`, for example:

@@ -7,8 +7,10 @@ if (( EUID != 0 )); then
 fi
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
-KERNEL_SRC="${KERNEL_SRC:-$SCRIPT_DIR/linux}"
-OUTPUT="${OUTPUT:-$SCRIPT_DIR/out}"
+PROJECT_ROOT="$(cd -- "$SCRIPT_DIR/../.." && pwd -P)"
+BUILD_ROOT="${BUILD_ROOT:-$PROJECT_ROOT/kernel-build}"
+KERNEL_SRC="${KERNEL_SRC:-$PROJECT_ROOT/linux-source}"
+OUTPUT="${OUTPUT:-$BUILD_ROOT/out}"
 BOOT_DIR=/boot/firmware
 ARCH=arm64
 
@@ -16,6 +18,14 @@ if [[ ! -f "$KERNEL_SRC/Makefile" || ! -f "$OUTPUT/.config" ]]; then
     echo "Kernel source or build configuration is missing. Run build_rpi_kernel.sh first." >&2
     exit 1
 fi
+
+case "$KERNEL_SRC$OUTPUT" in
+    *" "*)
+        echo "Kbuild does not support spaces in the kernel source or output path." >&2
+        echo "Move them to paths without spaces or set KERNEL_SRC and OUTPUT explicitly." >&2
+        exit 1
+        ;;
+esac
 
 if [[ ! -f "$BOOT_DIR/config.txt" || ! -f "$BOOT_DIR/cmdline.txt" ]]; then
     echo "Expected Raspberry Pi boot files under $BOOT_DIR; refusing to install." >&2

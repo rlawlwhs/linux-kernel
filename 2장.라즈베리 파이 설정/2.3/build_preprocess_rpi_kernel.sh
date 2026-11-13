@@ -8,9 +8,11 @@ if [[ $# -ne 1 || "$1" != *.i || "$1" == /* || "$1" == *..* ]]; then
 fi
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
-KERNEL_SRC="${KERNEL_SRC:-$SCRIPT_DIR/linux}"
-OUTPUT="${OUTPUT:-$SCRIPT_DIR/out}"
-BUILD_LOG="${BUILD_LOG:-$SCRIPT_DIR/rpi_preprocess_build_log.txt}"
+PROJECT_ROOT="$(cd -- "$SCRIPT_DIR/../.." && pwd -P)"
+BUILD_ROOT="${BUILD_ROOT:-$PROJECT_ROOT/kernel-build}"
+KERNEL_SRC="${KERNEL_SRC:-$PROJECT_ROOT/linux-source}"
+OUTPUT="${OUTPUT:-$BUILD_ROOT/out}"
+BUILD_LOG="${BUILD_LOG:-$BUILD_ROOT/rpi_preprocess_build_log.txt}"
 PREPROCESS_TARGET="$1"
 LOCALVERSION=-v8-study
 
@@ -19,11 +21,19 @@ if [[ ! -f "$KERNEL_SRC/Makefile" ]]; then
 Linux kernel source was not found at:
   $KERNEL_SRC
 
-From this directory, get the Raspberry Pi 6.18 source with:
-  git clone --depth=1 --branch rpi-6.18.y https://github.com/raspberrypi/linux.git linux
+From the repository root, get the Raspberry Pi 6.18 source with:
+  git clone --depth=1 --branch rpi-6.18.y https://github.com/raspberrypi/linux.git linux-source
 EOF
     exit 1
 fi
+
+case "$KERNEL_SRC$OUTPUT" in
+    *" "*)
+        echo "Kbuild does not support spaces in the kernel source or output path." >&2
+        echo "Move them to paths without spaces or set KERNEL_SRC and OUTPUT explicitly." >&2
+        exit 1
+        ;;
+esac
 
 SOURCE_FILE="$KERNEL_SRC/${PREPROCESS_TARGET%.i}.c"
 if [[ ! -f "$SOURCE_FILE" ]]; then
@@ -31,7 +41,7 @@ if [[ ! -f "$SOURCE_FILE" ]]; then
     exit 1
 fi
 
-mkdir -p "$OUTPUT"
+mkdir -p "$OUTPUT" "$(dirname -- "$BUILD_LOG")"
 cd "$KERNEL_SRC"
 
 echo "Creating the Raspberry Pi 4 64-bit default configuration"
